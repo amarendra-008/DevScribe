@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+code, pre {
+  font-family: 'Geist Mono', monospace;
+}
+
+html {
+  background-color: #111111;
+  color: #fff;
+}
