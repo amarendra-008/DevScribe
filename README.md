@@ -1,83 +1,103 @@
-DevScribe: Automated README Generator
-=============================
+# DevScribe
 
-**Project Title:** DevScribe: Automated README Generator
-**Tagline:** Generate high-quality README files for software projects with ease
+A web app that uses AI to generate README files and changelogs for your GitHub repositories.
 
-Description
------------
+## What it does
 
-DevScribe is a full-stack application designed to automate the generation of high-quality README files for software projects. It utilizes a combination of natural language processing and machine learning algorithms to create comprehensive and accurate documentation.
+- Generates README files by analyzing your code
+- Creates changelogs by comparing commits
+- Pushes generated docs directly to GitHub
+- Lets you customize the style and tone
 
-Features
---------
+## Tech Stack
 
-* Automated README generation using natural language processing and machine learning algorithms
-* Support for multiple programming languages and frameworks, including TypeScript, JavaScript, and PLpgSQL
-* Integration with GitHub and Supabase for seamless data synchronization
-* Customizable templates and layouts for tailored documentation
-* Real-time preview and editing capabilities
+- Frontend: React, TypeScript, Vite, Tailwind CSS
+- Backend: Node.js, Express, TypeScript
+- Database: Supabase (PostgreSQL)
+- AI: OpenRouter API
+- Auth: GitHub OAuth via Supabase
 
-Installation
-------------
+## Setup
 
-To install DevScribe, follow these steps:
+### You'll need
 
-1. Clone the repository using Git:
+- Node.js 18+
+- Supabase account
+- OpenRouter API key
+- GitHub OAuth app
+
+### Backend
+
 ```bash
-git clone https://github.com/DevScribe/DevScribe.git
-```
-2. Navigate to the project directory:
-```bash
-cd DevScribe
-```
-3. Install the required dependencies using npm:
-```bash
+cd devscribe-backend
 npm install
 ```
-4. Start the development server:
+
+Create `.env` file:
+```
+SUPABASE_URL=your_url
+SUPABASE_SERVICE_ROLE_KEY=your_key
+OPENROUTER_API_KEY=your_key
+PORT=3000
+```
+
+Start it:
 ```bash
 npm run dev
 ```
-5. Open your web browser and navigate to `http://localhost:3000` to access the DevScribe application.
 
-Usage
------
+### Frontend
 
-To generate a README file using DevScribe, follow these steps:
-
-1. Create a new project in the DevScribe application.
-2. Configure the project settings, including the programming language, framework, and template.
-3. Click the "Generate README" button to initiate the generation process.
-4. Review and customize the generated README file as needed.
-
-Example usage:
-```typescript
-import { generateReadme } from '@devscribe/core';
+```bash
+cd devscribe-frontend
+npm install
 ```
-API Documentation
-----------------
 
-### generateReadme
+Create `.env` file:
+```
+VITE_SUPABASE_URL=your_url
+VITE_SUPABASE_ANON_KEY=your_key
+VITE_API_URL=http://localhost:3000
+```
 
-Generates a README file for a given project.
+Start it:
+```bash
+npm run dev
+```
 
-* **Parameters:**
-	+ `project`: The project object containing the necessary information for generating the README file.
-* **Returns:**
-	+ A string representing the generated README file.
+### Database
 
-Contributing Guidelines
----------------------
+1. Go to Supabase dashboard
+2. Enable GitHub provider in Auth settings
+3. Run the SQL from `supabase/migrations/001_initial_schema.sql`
+4. Add `http://localhost:5173/app` to redirect URLs
 
-Contributions to DevScribe are welcome! To contribute, follow these steps:
+## How to use
 
-1. Fork the repository using Git.
-2. Create a new branch for your feature or fix.
-3. Make your changes and commit them with a descriptive message.
-4. Push your branch to your forked repository.
-5. Create a pull request to merge your changes into the main repository.
+1. Open `http://localhost:5173`
+2. Login with GitHub
+3. Connect a repo
+4. Go to README or Changelog
+5. Generate and push to GitHub
 
+## Folder structure
 
+```
+DevScribe/
+├── devscribe-frontend/    # React app
+├── devscribe-backend/     # Express API
+├── supabase/              # Database migrations
+└── docker-compose.yml     # Docker setup
+```
 
-Note: This README file was generated using DevScribe.
+## Docker
+
+```bash
+cp .env.example .env
+# add your keys
+docker-compose up --build
+```
+
+## Author
+
+Amarendra Mishra
