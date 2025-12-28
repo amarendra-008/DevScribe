@@ -42,7 +42,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-[#1a1a1a]">
             <div className="flex items-center gap-2">
-              <img src="/icon.svg" alt="DevScribe" className="w-8 h-8 rounded-lg" />
+              <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="DevScribe" className="w-8 h-8 rounded-lg" />
               <span className="text-xl font-semibold text-white">DevScribe</span>
             </div>
             <button

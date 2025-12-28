@@ -29,7 +29,7 @@ export default function LandingView() {
         <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-sm border-b border-white/5">
           <div className="flex items-center justify-center px-6 py-4 max-w-5xl mx-auto">
             <div className="flex items-center gap-2">
-              <img src="/icon.svg" alt="DevScribe" className="w-7 h-7 rounded-md" />
+              <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="DevScribe" className="w-7 h-7 rounded-md" />
               <span className="text-lg font-semibold">DevScribe</span>
             </div>
           </div>
