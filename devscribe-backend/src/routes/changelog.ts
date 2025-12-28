@@ -32,8 +32,10 @@ router.post('/generate', async (req: Request, res: Response) => {
   }
 
   const body = req.body as GenerateChangelogRequest;
+  console.log('Changelog request:', body);
+
   if (!body.repository_id || !body.from_ref || !body.to_ref) {
-    res.status(400).json({ error: 'Missing required fields' });
+    res.status(400).json({ error: 'Missing required fields', received: body });
     return;
   }
 
@@ -60,8 +62,14 @@ router.post('/generate', async (req: Request, res: Response) => {
       getPullRequestsBetweenRefs(octokit, owner, repoName, body.from_ref, body.to_ref),
     ]);
 
+    console.log(`Found ${commits.length} commits, ${pullRequests.length} PRs`);
+
     if (commits.length === 0) {
-      res.status(400).json({ error: 'No commits found between refs' });
+      res.status(400).json({
+        error: 'No commits found between refs',
+        from_ref: body.from_ref,
+        to_ref: body.to_ref,
+      });
       return;
     }
 
