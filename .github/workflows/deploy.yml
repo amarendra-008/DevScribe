@@ -33,6 +33,10 @@ jobs:
 
       - name: Build
         run: cd devscribe-frontend && npm run build
+        env:
+          VITE_API_URL: https://devscribe-1.onrender.com
+          VITE_SUPABASE_URL: https://elnpoczpvxqjuokvzstp.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVsbnBvY3pwdnhxanVva3Z6c3RwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NTA5NTAsImV4cCI6MjA4MjQyNjk1MH0.NzReafI5yMPpAB3JmVFl3Ok5-SSOK-A8EL7UmkQQOIw
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
