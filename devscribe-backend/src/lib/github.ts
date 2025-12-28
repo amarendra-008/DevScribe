@@ -214,3 +214,84 @@ export async function getRepoLanguages(
   });
   return data;
 }
+
+// Fetches recent commits for a repository
+export async function getRecentCommits(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  perPage: number = 20
+): Promise<{ sha: string; message: string; date: string }[]> {
+  const { data } = await octokit.repos.listCommits({
+    owner,
+    repo,
+    per_page: perPage,
+  });
+
+  return data.map((commit) => ({
+    sha: commit.sha,
+    message: commit.commit.message.split('\n')[0], // First line only
+    date: commit.commit.author?.date || '',
+  }));
+}
+
+// Fetches the first commit of a repository
+export async function getFirstCommit(
+  octokit: Octokit,
+  owner: string,
+  repo: string
+): Promise<{ sha: string; message: string; date: string } | null> {
+  try {
+    // Get all commits (paginated to find the first one)
+    const { data } = await octokit.repos.listCommits({
+      owner,
+      repo,
+      per_page: 1,
+    });
+
+    if (data.length === 0) return null;
+
+    // Get the total count by checking the Link header
+    const response = await octokit.repos.listCommits({
+      owner,
+      repo,
+      per_page: 1,
+      page: 1,
+    });
+
+    // Parse link header to find last page
+    const linkHeader = response.headers.link;
+    if (!linkHeader) {
+      // Only one page of commits
+      return {
+        sha: data[0].sha,
+        message: data[0].commit.message.split('\n')[0],
+        date: data[0].commit.author?.date || '',
+      };
+    }
+
+    const lastPageMatch = linkHeader.match(/page=(\d+)>; rel="last"/);
+    if (lastPageMatch) {
+      const lastPage = parseInt(lastPageMatch[1], 10);
+      const lastPageResponse = await octokit.repos.listCommits({
+        owner,
+        repo,
+        per_page: 1,
+        page: lastPage,
+      });
+
+      if (lastPageResponse.data.length > 0) {
+        const firstCommit = lastPageResponse.data[0];
+        return {
+          sha: firstCommit.sha,
+          message: firstCommit.commit.message.split('\n')[0],
+          date: firstCommit.commit.author?.date || '',
+        };
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}

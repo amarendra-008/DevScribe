@@ -6,6 +6,8 @@ import {
   getRepoReleases,
   getRepoTags,
   getRepoBranches,
+  getRecentCommits,
+  getFirstCommit,
 } from '../lib/github';
 import type { ConnectRepoRequest, GitRef } from '../types';
 
@@ -158,10 +160,12 @@ router.get('/:id/refs', async (req: Request, res: Response) => {
     const octokit = createGitHubClient(token);
 
     // Fetch all refs in parallel
-    const [releases, tags, branches] = await Promise.all([
+    const [releases, tags, branches, commits, firstCommit] = await Promise.all([
       getRepoReleases(octokit, owner, repoName).catch(() => []),
       getRepoTags(octokit, owner, repoName).catch(() => []),
       getRepoBranches(octokit, owner, repoName).catch(() => []),
+      getRecentCommits(octokit, owner, repoName, 15).catch(() => []),
+      getFirstCommit(octokit, owner, repoName).catch(() => null),
     ]);
 
     // Convert releases to refs format
@@ -172,10 +176,31 @@ router.get('/:id/refs', async (req: Request, res: Response) => {
       date: r.published_at,
     }));
 
+    // Convert commits to refs format
+    const commitRefs: GitRef[] = commits.map((c) => ({
+      name: c.sha.slice(0, 7),
+      type: 'commit' as const,
+      sha: c.sha,
+      message: c.message,
+      date: c.date,
+    }));
+
+    // Add first commit as a special ref if available and not already in list
+    if (firstCommit && !commits.find(c => c.sha === firstCommit.sha)) {
+      commitRefs.push({
+        name: firstCommit.sha.slice(0, 7),
+        type: 'commit' as const,
+        sha: firstCommit.sha,
+        message: `[FIRST] ${firstCommit.message}`,
+        date: firstCommit.date,
+      });
+    }
+
     res.json({
       releases: releaseRefs,
       tags,
       branches,
+      commits: commitRefs,
     });
   } catch (err) {
     console.error('Failed to fetch refs:', err);

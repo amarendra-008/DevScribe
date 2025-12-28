@@ -29,9 +29,10 @@ export interface ConnectedRepository {
 
 export interface GitRef {
   name: string;
-  type: 'branch' | 'tag' | 'release';
+  type: 'branch' | 'tag' | 'release' | 'commit';
   sha: string;
   date?: string;
+  message?: string;
 }
 
 // Commit and PR types

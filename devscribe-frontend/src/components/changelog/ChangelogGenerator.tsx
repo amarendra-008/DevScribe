@@ -14,10 +14,11 @@ import type { ConnectedRepository, GitRef, GeneratedDocument } from '../../types
 export default function ChangelogGenerator() {
   const [repos, setRepos] = useState<ConnectedRepository[]>([]);
   const [selectedRepo, setSelectedRepo] = useState<string>('');
-  const [refs, setRefs] = useState<{ releases: GitRef[]; tags: GitRef[]; branches: GitRef[] }>({
+  const [refs, setRefs] = useState<{ releases: GitRef[]; tags: GitRef[]; branches: GitRef[]; commits: GitRef[] }>({
     releases: [],
     tags: [],
     branches: [],
+    commits: [],
   });
   const [fromRef, setFromRef] = useState('');
   const [toRef, setToRef] = useState('');
@@ -73,7 +74,7 @@ export default function ChangelogGenerator() {
     }
   };
 
-  const allRefs = [...refs.releases, ...refs.tags, ...refs.branches];
+  const allRefs = [...refs.releases, ...refs.tags, ...refs.branches, ...refs.commits];
 
   const handleGenerate = async () => {
     if (!selectedRepo || !fromRef || !toRef) return;
@@ -185,8 +186,11 @@ export default function ChangelogGenerator() {
               >
                 <option value="">Select ref</option>
                 {allRefs.map((ref) => (
-                  <option key={`${ref.type}-${ref.name}`} value={ref.name}>
-                    {ref.name} ({ref.type})
+                  <option key={`${ref.type}-${ref.sha || ref.name}`} value={ref.type === 'commit' ? ref.sha : ref.name}>
+                    {ref.type === 'commit'
+                      ? `${ref.name} - ${ref.message?.slice(0, 30)}${(ref.message?.length || 0) > 30 ? '...' : ''}`
+                      : `${ref.name} (${ref.type})`
+                    }
                   </option>
                 ))}
               </select>
@@ -208,8 +212,11 @@ export default function ChangelogGenerator() {
               >
                 <option value="">Select ref</option>
                 {allRefs.map((ref) => (
-                  <option key={`${ref.type}-${ref.name}`} value={ref.name}>
-                    {ref.name} ({ref.type})
+                  <option key={`${ref.type}-${ref.sha || ref.name}`} value={ref.type === 'commit' ? ref.sha : ref.name}>
+                    {ref.type === 'commit'
+                      ? `${ref.name} - ${ref.message?.slice(0, 30)}${(ref.message?.length || 0) > 30 ? '...' : ''}`
+                      : `${ref.name} (${ref.type})`
+                    }
                   </option>
                 ))}
               </select>
