@@ -4,10 +4,11 @@ import { supabase } from '../lib/supabase';
 
 export default function LandingView() {
   const handleGitHubLogin = async () => {
+    const baseUrl = import.meta.env.BASE_URL || '/';
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
-        redirectTo: `${window.location.origin}/app`,
+        redirectTo: `${window.location.origin}${baseUrl}app`,
         scopes: 'read:user repo',
       },
     });
