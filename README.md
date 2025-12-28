@@ -78,11 +78,6 @@ Contributions to DevScribe are welcome! To contribute, follow these steps:
 4. Push your branch to your forked repository.
 5. Create a pull request to merge your changes into the main repository.
 
-Acknowledgments
---------------
 
-DevScribe would not be possible without the contributions of the following individuals and organizations:
-
-* [List of contributors and organizations]
 
 Note: This README file was generated using DevScribe.
