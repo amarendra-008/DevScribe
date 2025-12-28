@@ -16,6 +16,7 @@ const app = express();
 app.use(
   cors({
     origin: [
+      'https://amarendra-008.github.io',
       'https://devscribe.vercel.app',
       'http://localhost:5173',
     ],
