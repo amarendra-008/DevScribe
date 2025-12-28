@@ -90,13 +90,19 @@ export async function fetchRepoRefs(
   githubToken: string,
   userId: string,
   repoId: string
-): Promise<{ releases: GitRef[]; tags: GitRef[]; branches: GitRef[] }> {
+): Promise<{ releases: GitRef[]; tags: GitRef[]; branches: GitRef[]; commits: GitRef[] }> {
   const res = await fetch(`${API_URL}/api/repos/${repoId}/refs`, {
     headers: buildHeaders(githubToken, userId),
   });
 
   if (!res.ok) throw new Error('Failed to fetch refs');
-  return res.json();
+  const data = await res.json();
+  return {
+    releases: data.releases || [],
+    tags: data.tags || [],
+    branches: data.branches || [],
+    commits: data.commits || [],
+  };
 }
 
 // Changelog API
