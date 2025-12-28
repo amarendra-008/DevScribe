@@ -63,7 +63,7 @@ export default function ConnectedRepos() {
   }
 
   return (
-    <div className="max-w-4xl">
+    <div className="w-full max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>

@@ -7,24 +7,28 @@ export default function DashboardView() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-[#111111]">
+    <div className="flex h-screen bg-[#0a0a0a] overflow-hidden">
+      {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex-1 flex flex-col">
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile header */}
-        <header className="md:hidden flex items-center gap-4 px-4 py-3 border-b border-[#2a2a2a]">
+        <header className="md:hidden flex items-center gap-4 px-4 py-3 border-b border-[#1a1a1a] bg-[#0a0a0a]">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 text-gray-400 hover:text-white"
+            className="p-2 text-gray-400 hover:text-white transition-colors"
           >
             <Menu size={20} />
           </button>
           <span className="text-lg font-semibold text-white">DevScribe</span>
         </header>
 
-        {/* Main content */}
-        <main className="flex-1 p-6 md:p-8 overflow-auto">
-          <Outlet />
+        {/* Scrollable content */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6 md:p-10 lg:p-12">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

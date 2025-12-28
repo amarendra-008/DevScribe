@@ -1,0 +1,7 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dark background -->
+  <rect width="512" height="512" rx="108" fill="#09090b"/>
+
+  <!-- DS in monospace coding font -->
+  <text x="256" y="320" font-family="JetBrains Mono, Fira Code, SF Mono, Monaco, monospace" font-size="220" font-weight="700" text-anchor="middle" letter-spacing="-10" fill="white">DS</text>
+</svg>

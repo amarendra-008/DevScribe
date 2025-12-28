@@ -146,15 +146,32 @@ export async function previewChangelog(
 
 // README API
 
+export interface ReadmeOptions {
+  style?: 'minimal' | 'standard' | 'comprehensive';
+  tone?: 'professional' | 'friendly' | 'technical';
+  sections?: {
+    badges?: boolean;
+    features?: boolean;
+    installation?: boolean;
+    usage?: boolean;
+    api?: boolean;
+    contributing?: boolean;
+    license?: boolean;
+    acknowledgments?: boolean;
+  };
+  customPrompt?: string;
+}
+
 export async function generateReadme(
   githubToken: string,
   userId: string,
-  repositoryId: string
+  repositoryId: string,
+  options?: ReadmeOptions
 ): Promise<GeneratedDocument> {
   const res = await fetch(`${API_URL}/api/readme/generate`, {
     method: 'POST',
     headers: buildHeaders(githubToken, userId),
-    body: JSON.stringify({ repository_id: repositoryId }),
+    body: JSON.stringify({ repository_id: repositoryId, options }),
   });
 
   if (!res.ok) throw new Error('Failed to generate README');
@@ -241,4 +258,29 @@ export async function deleteDocument(
   });
 
   if (!res.ok) throw new Error('Failed to delete document');
+}
+
+// Sync API - Push content to GitHub
+
+export async function syncToGitHub(
+  githubToken: string,
+  userId: string,
+  repoFullName: string,
+  filePath: string,
+  content: string,
+  commitMessage?: string
+): Promise<{ sha: string; url: string }> {
+  const res = await fetch(`${API_URL}/api/sync/push`, {
+    method: 'POST',
+    headers: buildHeaders(githubToken, userId),
+    body: JSON.stringify({
+      repo_full_name: repoFullName,
+      file_path: filePath,
+      content,
+      commit_message: commitMessage || `Update ${filePath} via DevScribe`,
+    }),
+  });
+
+  if (!res.ok) throw new Error('Failed to sync to GitHub');
+  return res.json();
 }
