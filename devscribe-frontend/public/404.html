@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>DevScribe</title>
+    <script>
+      // Single Page App redirect for GitHub Pages
+      // Redirects 404s to index.html with the path as a query param
+      const path = window.location.pathname;
+      const search = window.location.search;
+      const hash = window.location.hash;
+      window.location.replace(
+        window.location.origin + '/DevScribe/' +
+        '?redirect=' + encodeURIComponent(path + search + hash)
+      );
+    </script>
+  </head>
+  <body>
+    Redirecting...
+  </body>
+</html>
