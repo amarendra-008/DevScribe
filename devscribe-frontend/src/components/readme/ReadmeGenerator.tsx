@@ -111,7 +111,7 @@ export default function ReadmeGenerator() {
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        <Loader2 className="w-6 h-6 animate-spin text-neon" />
       </div>
     );
   }
@@ -119,9 +119,9 @@ export default function ReadmeGenerator() {
   if (repos.length === 0) {
     return (
       <div className="w-full max-w-5xl mx-auto">
-        <h1 className="text-2xl font-semibold text-white mb-2">Generate README</h1>
+        <h1 className="text-2xl font-semibold text-neon mb-2">{'>'} Generate README</h1>
         <p className="text-gray-400 mb-8">Connect a repository first to generate documentation</p>
-        <div className="text-center py-16 bg-[#111] rounded-2xl border border-[#1a1a1a]">
+        <div className="text-center py-16 bg-hacker-card border border-hacker-border">
           <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-700" />
           <p className="text-gray-500">No repositories connected</p>
         </div>
@@ -132,34 +132,36 @@ export default function ReadmeGenerator() {
   return (
     <div className="w-full max-w-5xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-white">Generate README</h1>
+        <h1 className="text-2xl font-semibold text-neon">{'>'} Generate README</h1>
         <p className="text-gray-400 mt-1">Analyze your repository and generate comprehensive documentation</p>
       </div>
 
-      <div className="bg-[#111] rounded-2xl border border-[#1a1a1a] p-6 mb-6">
+      <div className="bg-hacker-card border border-hacker-border p-6 mb-6">
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-300 mb-2">Repository</label>
+            <label className="block text-sm font-medium text-neon/80 mb-2">Repository</label>
             <div className="relative">
               <select
                 value={selectedRepo}
                 onChange={(e) => setSelectedRepo(e.target.value)}
-                className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#222] rounded-xl text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/20"
+                className="w-full px-4 py-3 bg-hacker-bg border border-hacker-border text-white appearance-none cursor-pointer focus:outline-none focus:border-neon focus:shadow-neon-sm transition-all"
               >
                 <option value="">Select repository</option>
                 {repos.map((repo) => (
                   <option key={repo.id} value={repo.id}>{repo.repo_name}</option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neon/50 pointer-events-none" />
             </div>
           </div>
 
           <div className="flex items-end gap-3">
             <button
               onClick={() => setShowOptions(!showOptions)}
-              className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                showOptions ? 'bg-white text-black' : 'bg-[#1a1a1a] text-gray-300 hover:bg-[#222]'
+              className={`flex items-center gap-2 px-4 py-3 font-medium text-sm transition-all border ${
+                showOptions
+                  ? 'bg-neon text-black border-neon shadow-neon'
+                  : 'bg-hacker-border text-gray-300 border-hacker-border hover:border-neon hover:text-neon'
               }`}
             >
               <Settings2 size={18} />
@@ -168,29 +170,31 @@ export default function ReadmeGenerator() {
             <button
               onClick={() => handleGenerate(false)}
               disabled={!selectedRepo || generating}
-              className="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-xl font-medium text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 bg-neon text-black px-6 py-3 font-medium text-sm hover:shadow-neon disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles size={18} />}
-              {generating ? 'Generating...' : 'Generate README'}
+              {generating ? 'Analyzing...' : 'Generate README'}
             </button>
           </div>
         </div>
       </div>
 
       {showOptions && (
-        <div className="bg-[#111] rounded-2xl border border-[#1a1a1a] p-6 mb-6 space-y-6">
+        <div className="bg-hacker-card border border-hacker-border p-6 mb-6 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-3">README Style</label>
+            <label className="block text-sm font-medium text-neon/80 mb-3">README Style</label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {STYLE_OPTIONS.map(({ value, label, description }) => (
                 <button
                   key={value}
                   onClick={() => setOptions(prev => ({ ...prev, style: value }))}
-                  className={`p-4 rounded-xl border-2 text-left transition-all ${
-                    options.style === value ? 'border-white bg-white/5' : 'border-[#222] hover:border-[#333]'
+                  className={`p-4 border-2 text-left transition-all ${
+                    options.style === value
+                      ? 'border-neon bg-neon/5 shadow-neon-sm'
+                      : 'border-hacker-border hover:border-neon/50'
                   }`}
                 >
-                  <p className={`font-medium ${options.style === value ? 'text-white' : 'text-gray-300'}`}>{label}</p>
+                  <p className={`font-medium ${options.style === value ? 'text-neon' : 'text-gray-300'}`}>{label}</p>
                   <p className="text-sm text-gray-500 mt-1">{description}</p>
                 </button>
               ))}
@@ -198,17 +202,19 @@ export default function ReadmeGenerator() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-3">Writing Tone</label>
+            <label className="block text-sm font-medium text-neon/80 mb-3">Writing Tone</label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {TONE_OPTIONS.map(({ value, label, description }) => (
                 <button
                   key={value}
                   onClick={() => setOptions(prev => ({ ...prev, tone: value }))}
-                  className={`p-4 rounded-xl border-2 text-left transition-all ${
-                    options.tone === value ? 'border-white bg-white/5' : 'border-[#222] hover:border-[#333]'
+                  className={`p-4 border-2 text-left transition-all ${
+                    options.tone === value
+                      ? 'border-neon bg-neon/5 shadow-neon-sm'
+                      : 'border-hacker-border hover:border-neon/50'
                   }`}
                 >
-                  <p className={`font-medium ${options.tone === value ? 'text-white' : 'text-gray-300'}`}>{label}</p>
+                  <p className={`font-medium ${options.tone === value ? 'text-neon' : 'text-gray-300'}`}>{label}</p>
                   <p className="text-sm text-gray-500 mt-1">{description}</p>
                 </button>
               ))}
@@ -216,14 +222,16 @@ export default function ReadmeGenerator() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-3">Include Sections</label>
+            <label className="block text-sm font-medium text-neon/80 mb-3">Include Sections</label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {Object.entries(options.sections || {}).map(([key, value]) => (
                 <button
                   key={key}
                   onClick={() => toggleSection(key as keyof NonNullable<ReadmeOptions['sections']>)}
-                  className={`px-4 py-3 rounded-xl font-medium text-sm capitalize transition-all ${
-                    value ? 'bg-white text-black' : 'bg-[#1a1a1a] text-gray-400 hover:bg-[#222]'
+                  className={`px-4 py-3 font-medium text-sm capitalize transition-all border ${
+                    value
+                      ? 'bg-neon text-black border-neon'
+                      : 'bg-hacker-border text-gray-400 border-hacker-border hover:border-neon/50 hover:text-neon'
                   }`}
                 >
                   {key}
@@ -233,7 +241,7 @@ export default function ReadmeGenerator() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-3">
+            <label className="block text-sm font-medium text-neon/80 mb-3">
               <div className="flex items-center gap-2">
                 <MessageSquare size={16} />
                 Additional Instructions
@@ -243,35 +251,35 @@ export default function ReadmeGenerator() {
               value={options.customPrompt || ''}
               onChange={(e) => setOptions(prev => ({ ...prev, customPrompt: e.target.value }))}
               placeholder="Add specific instructions or context..."
-              className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#222] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-white/20 resize-none h-32"
+              className="w-full px-4 py-3 bg-hacker-bg border border-hacker-border text-white placeholder-gray-600 focus:outline-none focus:border-neon focus:shadow-neon-sm resize-none h-32 transition-all"
             />
           </div>
         </div>
       )}
 
       {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
           {error}
         </div>
       )}
 
       {document && (
         <>
-          <div className="bg-[#111] rounded-2xl border border-[#1a1a1a] overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#1a1a1a] bg-[#0f0f0f]">
-              <h3 className="font-medium text-white">{document.title}</h3>
+          <div className="bg-hacker-card border border-hacker-border overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-hacker-border bg-hacker-bg">
+              <h3 className="font-medium text-neon">{document.title}</h3>
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => copy(document.content)}
-                  className="flex items-center gap-2 text-sm text-gray-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-[#1a1a1a]"
+                  className="flex items-center gap-2 text-sm text-gray-400 hover:text-neon px-3 py-1.5 hover:bg-neon/10 transition-all"
                 >
-                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                  {copied ? <Check size={16} className="text-neon" /> : <Copy size={16} />}
                   {copied ? 'Copied' : 'Copy'}
                 </button>
                 <button
                   onClick={handleSync}
                   disabled={syncing}
-                  className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-medium text-sm disabled:opacity-50"
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-500 hover:shadow-[0_0_10px_rgba(34,197,94,0.4)] text-white px-4 py-2 font-medium text-sm disabled:opacity-50 transition-all"
                 >
                   {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : synced ? <Check size={16} /> : <Upload size={16} />}
                   {syncing ? 'Syncing...' : synced ? 'Synced!' : 'Push to GitHub'}
@@ -283,21 +291,21 @@ export default function ReadmeGenerator() {
             </div>
           </div>
 
-          <div className="mt-6 bg-[#111] rounded-2xl border border-[#1a1a1a] p-6">
+          <div className="mt-6 bg-hacker-card border border-hacker-border p-6">
             <div className="flex items-center gap-2 mb-3">
-              <RefreshCw size={18} className="text-gray-400" />
-              <label className="text-sm font-medium text-gray-300">Not happy? Provide feedback and regenerate</label>
+              <RefreshCw size={18} className="text-neon/60" />
+              <label className="text-sm font-medium text-neon/80">Not happy? Provide feedback and regenerate</label>
             </div>
             <textarea
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
               placeholder="Tell us what needs to be changed..."
-              className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#222] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-white/20 resize-none h-28 mb-4"
+              className="w-full px-4 py-3 bg-hacker-bg border border-hacker-border text-white placeholder-gray-600 focus:outline-none focus:border-neon focus:shadow-neon-sm resize-none h-28 mb-4 transition-all"
             />
             <button
               onClick={() => handleGenerate(true)}
               disabled={!feedback.trim() || generating}
-              className="flex items-center gap-2 bg-[#1a1a1a] hover:bg-[#222] text-white px-5 py-2.5 rounded-xl font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed border border-[#333]"
+              className="flex items-center gap-2 bg-hacker-border hover:bg-neon/10 text-neon px-5 py-2.5 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed border border-hacker-border hover:border-neon transition-all"
             >
               {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw size={16} />}
               {generating ? 'Regenerating...' : 'Regenerate with Feedback'}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Copy, Check, FileText, Upload, ChevronDown } from 'lucide-react';
+import { Loader2, Copy, Check, FileText, Upload, ChevronDown, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useAuth } from '../../lib/useAuth';
@@ -93,7 +93,7 @@ export default function ChangelogGenerator() {
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        <Loader2 className="w-6 h-6 animate-spin text-neon" />
       </div>
     );
   }
@@ -101,9 +101,9 @@ export default function ChangelogGenerator() {
   if (repos.length === 0) {
     return (
       <div className="max-w-2xl">
-        <h1 className="text-2xl font-semibold text-white mb-2">Generate Changelog</h1>
+        <h1 className="text-2xl font-semibold text-neon mb-2">{'>'} Generate Changelog</h1>
         <p className="text-gray-400 mb-8">Connect a repository first to generate changelogs</p>
-        <div className="text-center py-16 bg-[#18181b] rounded-md border border-[#2a2a2a]">
+        <div className="text-center py-16 bg-hacker-card border border-hacker-border">
           <FileText className="w-12 h-12 mx-auto mb-4 text-gray-600" />
           <p className="text-gray-400">No repositories connected</p>
         </div>
@@ -113,36 +113,36 @@ export default function ChangelogGenerator() {
 
   return (
     <div className="w-full max-w-5xl mx-auto">
-      <h1 className="text-2xl font-semibold text-white mb-2">Generate Changelog</h1>
+      <h1 className="text-2xl font-semibold text-neon mb-2">{'>'} Generate Changelog</h1>
       <p className="text-gray-400 mb-8">Select a repository and version range to generate a changelog</p>
 
-      <div className="bg-[#18181b] rounded-lg border border-[#2a2a2a] p-6 mb-6">
+      <div className="bg-hacker-card border border-hacker-border p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Repository</label>
+            <label className="block text-sm font-medium text-neon/80 mb-2">Repository</label>
             <div className="relative">
               <select
                 value={selectedRepo}
                 onChange={(e) => setSelectedRepo(e.target.value)}
-                className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#333] rounded-lg text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/20"
+                className="w-full px-4 py-3 bg-hacker-bg border border-hacker-border text-white appearance-none cursor-pointer focus:outline-none focus:border-neon focus:shadow-neon-sm transition-all"
               >
                 <option value="">Select repository</option>
                 {repos.map((repo) => (
                   <option key={repo.id} value={repo.id}>{repo.repo_name}</option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neon/50 pointer-events-none" />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">From (older)</label>
+            <label className="block text-sm font-medium text-neon/80 mb-2">From (older)</label>
             <div className="relative">
               <select
                 value={fromRef}
                 onChange={(e) => setFromRef(e.target.value)}
                 disabled={!selectedRepo}
-                className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#333] rounded-lg text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 bg-hacker-bg border border-hacker-border text-white appearance-none cursor-pointer focus:outline-none focus:border-neon focus:shadow-neon-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 <option value="">Select ref</option>
                 {allRefs.map((ref) => (
@@ -151,18 +151,18 @@ export default function ChangelogGenerator() {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neon/50 pointer-events-none" />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">To (newer)</label>
+            <label className="block text-sm font-medium text-neon/80 mb-2">To (newer)</label>
             <div className="relative">
               <select
                 value={toRef}
                 onChange={(e) => setToRef(e.target.value)}
                 disabled={!selectedRepo}
-                className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#333] rounded-lg text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 bg-hacker-bg border border-hacker-border text-white appearance-none cursor-pointer focus:outline-none focus:border-neon focus:shadow-neon-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 <option value="">Select ref</option>
                 {allRefs.map((ref) => (
@@ -171,7 +171,7 @@ export default function ChangelogGenerator() {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neon/50 pointer-events-none" />
             </div>
           </div>
         </div>
@@ -179,35 +179,35 @@ export default function ChangelogGenerator() {
         <button
           onClick={handleGenerate}
           disabled={!selectedRepo || !fromRef || !toRef || generating}
-          className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 bg-neon text-black px-5 py-2.5 font-medium text-sm hover:shadow-neon disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
-          {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles size={18} />}
           {generating ? 'Generating...' : 'Generate Changelog'}
         </button>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
           {error}
         </div>
       )}
 
       {document && (
-        <div className="bg-[#18181b] rounded-lg border border-[#2a2a2a]">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a]">
-            <h3 className="font-medium text-white">{document.title}</h3>
+        <div className="bg-hacker-card border border-hacker-border">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-hacker-border bg-hacker-bg">
+            <h3 className="font-medium text-neon">{document.title}</h3>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => copy(document.content)}
-                className="flex items-center gap-2 text-sm text-gray-400 hover:text-white"
+                className="flex items-center gap-2 text-sm text-gray-400 hover:text-neon px-3 py-1.5 hover:bg-neon/10 transition-all"
               >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
+                {copied ? <Check size={16} className="text-neon" /> : <Copy size={16} />}
                 {copied ? 'Copied' : 'Copy'}
               </button>
               <button
                 onClick={handleSync}
                 disabled={syncing}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-medium text-sm disabled:opacity-50"
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-500 hover:shadow-[0_0_10px_rgba(34,197,94,0.4)] text-white px-4 py-2 font-medium text-sm disabled:opacity-50 transition-all"
               >
                 {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : synced ? <Check size={16} /> : <Upload size={16} />}
                 {syncing ? 'Syncing...' : synced ? 'Synced!' : 'Push to GitHub'}
