@@ -5,6 +5,7 @@ import type {
   GitRelease,
   CommitInfo,
   PullRequestInfo,
+  CodeFile,
 } from '../types';
 
 // Creates an authenticated Octokit instance
@@ -294,4 +295,195 @@ export async function getFirstCommit(
   } catch {
     return null;
   }
+}
+
+// Priority patterns for selecting important files
+const ENTRY_POINT_PATTERNS = [
+  /^(src\/)?(index|main|app|server)\.(ts|js|tsx|jsx)$/,
+  /^(src\/)?App\.(ts|js|tsx|jsx)$/,
+];
+
+const CONFIG_PATTERNS = [
+  /^tsconfig\.json$/,
+  /^vite\.config\.(ts|js)$/,
+  /^next\.config\.(ts|js|mjs)$/,
+  /^webpack\.config\.(ts|js)$/,
+  /^tailwind\.config\.(ts|js)$/,
+  /^\.env\.example$/,
+];
+
+const ROUTE_PATTERNS = [
+  /^(src\/)?(routes|api|pages\/api)\/.+\.(ts|js|tsx|jsx)$/,
+  /^(src\/)?controllers?\/.+\.(ts|js)$/,
+];
+
+const COMPONENT_PATTERNS = [
+  /^(src\/)?components?\/.+\.(tsx|jsx)$/,
+  /^(src\/)?pages?\/.+\.(tsx|jsx)$/,
+];
+
+const TYPE_PATTERNS = [
+  /^(src\/)?types?\/(index|.+)\.(ts|d\.ts)$/,
+  /^(src\/)?interfaces?\/.+\.ts$/,
+];
+
+const SERVICE_PATTERNS = [
+  /^(src\/)?(services?|lib|utils?)\/.+\.(ts|js)$/,
+];
+
+// Files/directories to always skip
+const SKIP_PATTERNS = [
+  /node_modules/,
+  /\.git/,
+  /dist\//,
+  /build\//,
+  /\.next\//,
+  /coverage\//,
+  /\.lock$/,
+  /lock\.json$/,
+  /\.min\.(js|css)$/,
+  /\.map$/,
+  /\.d\.ts$/,  // Skip declaration files except explicit type files
+  /\.(png|jpg|jpeg|gif|svg|ico|webp)$/i,
+  /\.(woff|woff2|ttf|eot)$/i,
+  /\.(mp3|mp4|wav|avi)$/i,
+];
+
+function getLanguageFromPath(filePath: string): string {
+  const ext = filePath.split('.').pop()?.toLowerCase() || '';
+  const langMap: Record<string, string> = {
+    ts: 'typescript',
+    tsx: 'tsx',
+    js: 'javascript',
+    jsx: 'jsx',
+    py: 'python',
+    rb: 'ruby',
+    go: 'go',
+    rs: 'rust',
+    java: 'java',
+    kt: 'kotlin',
+    swift: 'swift',
+    php: 'php',
+    cs: 'csharp',
+    cpp: 'cpp',
+    c: 'c',
+    json: 'json',
+    yaml: 'yaml',
+    yml: 'yaml',
+    md: 'markdown',
+    css: 'css',
+    scss: 'scss',
+    html: 'html',
+  };
+  return langMap[ext] || ext;
+}
+
+function shouldSkipFile(filePath: string): boolean {
+  return SKIP_PATTERNS.some(pattern => pattern.test(filePath));
+}
+
+function categorizeFile(filePath: string): { category: string; priority: number } {
+  if (ENTRY_POINT_PATTERNS.some(p => p.test(filePath))) {
+    return { category: 'entry', priority: 1 };
+  }
+  if (CONFIG_PATTERNS.some(p => p.test(filePath))) {
+    return { category: 'config', priority: 2 };
+  }
+  if (TYPE_PATTERNS.some(p => p.test(filePath))) {
+    return { category: 'types', priority: 3 };
+  }
+  if (ROUTE_PATTERNS.some(p => p.test(filePath))) {
+    return { category: 'routes', priority: 4 };
+  }
+  if (SERVICE_PATTERNS.some(p => p.test(filePath))) {
+    return { category: 'services', priority: 5 };
+  }
+  if (COMPONENT_PATTERNS.some(p => p.test(filePath))) {
+    return { category: 'components', priority: 6 };
+  }
+  return { category: 'other', priority: 10 };
+}
+
+// Fetches key source files for comprehensive code analysis
+export async function getKeySourceFiles(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  fileTree: string[],
+  maxFiles: number = 20,
+  maxLinesPerFile: number = 300
+): Promise<CodeFile[]> {
+  // Filter and categorize files
+  const categorizedFiles = fileTree
+    .filter(f => !shouldSkipFile(f))
+    .filter(f => /\.(ts|tsx|js|jsx|py|go|rs|java|rb|php)$/.test(f))
+    .map(f => ({
+      path: f,
+      ...categorizeFile(f),
+    }))
+    .sort((a, b) => a.priority - b.priority);
+
+  // Select diverse set of files across categories
+  const selectedFiles: string[] = [];
+  const categoryLimits: Record<string, number> = {
+    entry: 3,
+    config: 3,
+    types: 2,
+    routes: 4,
+    services: 4,
+    components: 4,
+    other: 2,
+  };
+  const categoryCounts: Record<string, number> = {};
+
+  for (const file of categorizedFiles) {
+    if (selectedFiles.length >= maxFiles) break;
+
+    const limit = categoryLimits[file.category] || 2;
+    const count = categoryCounts[file.category] || 0;
+
+    if (count < limit) {
+      selectedFiles.push(file.path);
+      categoryCounts[file.category] = count + 1;
+    }
+  }
+
+  // Fetch file contents in parallel (with concurrency limit)
+  const codeFiles: CodeFile[] = [];
+  const batchSize = 5;
+
+  for (let i = 0; i < selectedFiles.length; i += batchSize) {
+    const batch = selectedFiles.slice(i, i + batchSize);
+    const results = await Promise.all(
+      batch.map(async (filePath) => {
+        try {
+          const content = await getFileContent(octokit, owner, repo, filePath);
+          if (!content) return null;
+
+          const lines = content.split('\n');
+          const lineCount = lines.length;
+
+          // Truncate if too long
+          let truncatedContent = content;
+          if (lineCount > maxLinesPerFile) {
+            truncatedContent = lines.slice(0, maxLinesPerFile).join('\n') +
+              `\n\n// ... truncated (${lineCount - maxLinesPerFile} more lines)`;
+          }
+
+          return {
+            path: filePath,
+            language: getLanguageFromPath(filePath),
+            content: truncatedContent,
+            lineCount,
+          } as CodeFile;
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    codeFiles.push(...results.filter((f): f is CodeFile => f !== null));
+  }
+
+  return codeFiles;
 }

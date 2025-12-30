@@ -1,19 +1,167 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
-  -webkit-font-smoothing: antialiased;
+:root {
+  --neon: #00d4ff;
+  --neon-dim: #00a8cc;
+  --neon-glow: rgba(0, 212, 255, 0.4);
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #111111;
+  --bg-tertiary: #1a1a1a;
 }
 
-code, pre {
-  font-family: 'Geist Mono', monospace;
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--neon-dim) var(--bg-primary);
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 0;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-dim);
 }
 
 html {
-  background-color: #111111;
+  background-color: var(--bg-primary);
   color: #fff;
+}
+
+body {
+  font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-primary);
+}
+
+code, pre, .font-mono {
+  font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+}
+
+/* Neon text utility */
+.neon-text {
+  color: var(--neon);
+  text-shadow: 0 0 10px var(--neon-glow);
+}
+
+/* Neon border utility */
+.neon-border {
+  border-color: var(--neon);
+  box-shadow: 0 0 5px var(--neon-glow);
+}
+
+/* Neon glow utility */
+.neon-glow {
+  box-shadow: 0 0 10px var(--neon-glow), 0 0 20px var(--neon-glow);
+}
+
+/* Neon button hover effect */
+.neon-hover {
+  transition: all 0.2s ease;
+}
+
+.neon-hover:hover {
+  border-color: var(--neon);
+  box-shadow: 0 0 8px var(--neon-glow);
+}
+
+/* Terminal-style cursor blink */
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.cursor-blink::after {
+  content: '_';
+  animation: cursor-blink 1s infinite;
+  color: var(--neon);
+}
+
+/* Scanline effect for extra hacker vibes (optional) */
+.scanlines::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 1px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 3px
+  );
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* Selection color */
+::selection {
+  background: var(--neon);
+  color: #000;
+}
+
+::-moz-selection {
+  background: var(--neon);
+  color: #000;
+}
+
+/* Focus outline */
+*:focus-visible {
+  outline: 1px solid var(--neon);
+  outline-offset: 2px;
+}
+
+/* Prose overrides for neon theme */
+.prose-invert {
+  --tw-prose-body: #d1d5db;
+  --tw-prose-headings: #fff;
+  --tw-prose-links: var(--neon);
+  --tw-prose-code: var(--neon);
+  --tw-prose-pre-bg: var(--bg-primary);
+  --tw-prose-pre-code: #d1d5db;
+}
+
+.prose-invert a {
+  color: var(--neon);
+  text-decoration: none;
+}
+
+.prose-invert a:hover {
+  text-shadow: 0 0 8px var(--neon-glow);
+}
+
+.prose-invert code {
+  color: var(--neon);
+  background: var(--bg-tertiary);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0;
+  font-weight: 400;
+}
+
+.prose-invert pre {
+  background: var(--bg-primary);
+  border: 1px solid var(--bg-tertiary);
+  border-radius: 0;
+}
+
+.prose-invert pre code {
+  background: transparent;
+  padding: 0;
+  color: #d1d5db;
 }

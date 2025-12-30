@@ -1,172 +1,103 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
 import { supabase } from '../lib/supabase';
-import {
-  createGitHubClient,
-  getRepoTree,
-  getFileContent,
-  getRepoLanguages,
-} from '../lib/github';
+import { createGitHubClient, getRepoTree, getFileContent, getRepoLanguages, getKeySourceFiles } from '../lib/github';
 import { callOpenRouter } from '../services/openrouter';
-import {
-  buildReadmeSystemPrompt,
-  buildReadmePrompt,
-  type ReadmeOptions,
-} from '../services/prompt-builder';
-import type { GenerateReadmeRequest } from '../types';
+import { buildReadmeSystemPrompt, buildReadmePrompt } from '../services/prompt-builder';
+import { analyzeCodebase } from '../services/code-analyzer';
+import { requireAuth, asyncHandler } from '../lib/middleware';
+import type { ReadmeOptions } from '../types';
 
 const router = Router();
+router.use(requireAuth);
 
-// Extracts GitHub token from Authorization header
-function getGitHubToken(req: Request): string | null {
-  const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) return null;
-  return auth.slice(7);
-}
+router.post('/generate', asyncHandler(async (req, res) => {
+  const { repository_id, options = {} } = req.body as { repository_id: string; options?: ReadmeOptions };
 
-// POST /api/readme/generate - Generate README from repository analysis
-router.post('/generate', async (req: Request, res: Response) => {
-  const token = getGitHubToken(req);
-  const userId = req.headers['x-user-id'] as string;
-
-  if (!token || !userId) {
-    res.status(401).json({ error: 'Authentication required' });
-    return;
-  }
-
-  const body = req.body as GenerateReadmeRequest & { options?: ReadmeOptions };
-  if (!body.repository_id) {
+  if (!repository_id) {
     res.status(400).json({ error: 'Repository ID required' });
     return;
   }
 
-  const options: ReadmeOptions = body.options || {};
+  const { data: repo, error: repoError } = await supabase
+    .from('connected_repositories')
+    .select('*')
+    .eq('id', repository_id)
+    .eq('user_id', req.userId)
+    .single();
 
-  try {
-    // Get repository details
-    const { data: repo, error: repoError } = await supabase
-      .from('connected_repositories')
-      .select('*')
-      .eq('id', body.repository_id)
-      .eq('user_id', userId)
-      .single();
+  if (repoError || !repo) {
+    res.status(404).json({ error: 'Repository not found' });
+    return;
+  }
 
-    if (repoError || !repo) {
-      res.status(404).json({ error: 'Repository not found' });
-      return;
-    }
+  const [owner, repoName] = repo.repo_full_name.split('/');
+  const octokit = createGitHubClient(req.token);
 
-    const [owner, repoName] = repo.repo_full_name.split('/');
-    const octokit = createGitHubClient(token);
+  // Phase 1: Get basic repo structure and metadata
+  const [fileStructure, languages, packageJson, existingReadme] = await Promise.all([
+    getRepoTree(octokit, owner, repoName, repo.default_branch),
+    getRepoLanguages(octokit, owner, repoName),
+    getFileContent(octokit, owner, repoName, 'package.json'),
+    getFileContent(octokit, owner, repoName, 'README.md'),
+  ]);
 
-    // Fetch repository data in parallel
-    const [fileStructure, languages, packageJson, existingReadme] = await Promise.all([
-      getRepoTree(octokit, owner, repoName, repo.default_branch),
-      getRepoLanguages(octokit, owner, repoName),
-      getFileContent(octokit, owner, repoName, 'package.json'),
-      getFileContent(octokit, owner, repoName, 'README.md'),
-    ]);
+  let parsedPackageJson: Record<string, unknown> | undefined;
+  if (packageJson) {
+    try { parsedPackageJson = JSON.parse(packageJson); } catch {}
+  }
 
-    // Parse package.json if it exists
-    let parsedPackageJson: Record<string, unknown> | undefined;
-    if (packageJson) {
-      try {
-        parsedPackageJson = JSON.parse(packageJson);
-      } catch {
-        // Ignore parse errors
-      }
-    }
+  // Phase 2: Deep code analysis - read key source files
+  console.log(`[README] Fetching key source files for ${repo.repo_full_name}...`);
+  const sourceFiles = await getKeySourceFiles(octokit, owner, repoName, fileStructure);
+  console.log(`[README] Fetched ${sourceFiles.length} source files for analysis`);
 
-    // Build prompts with options
-    const systemPrompt = buildReadmeSystemPrompt(options);
-    const userPrompt = buildReadmePrompt({
+  // Phase 3: Analyze the codebase
+  const codeAnalysis = analyzeCodebase(sourceFiles, parsedPackageJson, languages, fileStructure);
+  console.log(`[README] Code analysis complete:`, {
+    architecture: codeAnalysis.architecture,
+    patterns: codeAnalysis.patterns.length,
+    routes: codeAnalysis.routes.length,
+    components: codeAnalysis.components.length,
+    exports: codeAnalysis.exports.length,
+  });
+
+  // Phase 4: Generate README with comprehensive context
+  const content = await callOpenRouter(
+    buildReadmeSystemPrompt(options),
+    buildReadmePrompt({
       repo_name: repo.repo_name,
-      description: null,
+      description: repo.description || null,
       file_structure: fileStructure,
       languages,
       package_json: parsedPackageJson,
       existing_readme: existingReadme || undefined,
-    }, options);
+      source_files: sourceFiles,
+      code_analysis: codeAnalysis,
+    }, options)
+  );
 
-    const content = await callOpenRouter(systemPrompt, userPrompt);
+  const { data: doc, error: docError } = await supabase
+    .from('generated_documents')
+    .insert({
+      user_id: req.userId,
+      repository_id,
+      doc_type: 'readme',
+      title: `${repo.repo_name} README`,
+      content,
+      metadata: {
+        languages: Object.keys(languages),
+        file_count: fileStructure.length,
+        source_files_analyzed: sourceFiles.length,
+        architecture: codeAnalysis.architecture,
+        tech_stack: codeAnalysis.techStack,
+        patterns: codeAnalysis.patterns,
+      },
+    })
+    .select()
+    .single();
 
-    // Save document
-    const { data: doc, error: docError } = await supabase
-      .from('generated_documents')
-      .insert({
-        user_id: userId,
-        repository_id: body.repository_id,
-        doc_type: 'readme',
-        title: `${repo.repo_name} README`,
-        content,
-        metadata: {
-          languages: Object.keys(languages),
-          file_count: fileStructure.length,
-          options: {
-            style: options.style || 'standard',
-            tone: options.tone || 'professional',
-          },
-        },
-      })
-      .select()
-      .single();
-
-    if (docError) throw docError;
-
-    res.json({ document: doc });
-  } catch (err) {
-    console.error('Failed to generate README:', err);
-    res.status(500).json({ error: 'Failed to generate README' });
-  }
-});
-
-// POST /api/readme/analyze - Analyze repository structure
-router.post('/analyze', async (req: Request, res: Response) => {
-  const token = getGitHubToken(req);
-  const userId = req.headers['x-user-id'] as string;
-
-  if (!token || !userId) {
-    res.status(401).json({ error: 'Authentication required' });
-    return;
-  }
-
-  const body = req.body as GenerateReadmeRequest;
-  if (!body.repository_id) {
-    res.status(400).json({ error: 'Repository ID required' });
-    return;
-  }
-
-  try {
-    // Get repository details
-    const { data: repo, error: repoError } = await supabase
-      .from('connected_repositories')
-      .select('*')
-      .eq('id', body.repository_id)
-      .eq('user_id', userId)
-      .single();
-
-    if (repoError || !repo) {
-      res.status(404).json({ error: 'Repository not found' });
-      return;
-    }
-
-    const [owner, repoName] = repo.repo_full_name.split('/');
-    const octokit = createGitHubClient(token);
-
-    // Fetch repository data
-    const [fileStructure, languages] = await Promise.all([
-      getRepoTree(octokit, owner, repoName, repo.default_branch),
-      getRepoLanguages(octokit, owner, repoName),
-    ]);
-
-    res.json({
-      file_structure: fileStructure.slice(0, 100),
-      languages,
-      file_count: fileStructure.length,
-    });
-  } catch (err) {
-    console.error('Failed to analyze repository:', err);
-    res.status(500).json({ error: 'Failed to analyze repository' });
-  }
-});
+  if (docError) throw docError;
+  res.json({ document: doc });
+}));
 
 export default router;
