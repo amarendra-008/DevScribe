@@ -14,8 +14,22 @@ A web app that uses AI to generate README files and changelogs for your GitHub r
 - Frontend: React, TypeScript, Vite, Tailwind CSS
 - Backend: Node.js, Express, TypeScript
 - Database: Supabase (PostgreSQL)
-- AI: OpenRouter API
+- AI: OpenRouter API (Llama 3 70B)
 - Auth: GitHub OAuth via Supabase
+
+## AI Provider
+
+DevScribe uses **OpenRouter API** with Llama 3 70B model for AI-powered documentation generation.
+
+**Why OpenRouter?**
+- Cost-effective for side projects
+- Access to multiple models
+- No minimum spend requirements
+
+We initially integrated Claude API (Anthropic) for potentially higher quality outputs, but reverted to OpenRouter due to:
+- Claude API requires separate billing from Claude Pro subscription
+- No free tier for API usage
+- OpenRouter provides good quality at lower cost for this use case
 
 ## Setup
 
