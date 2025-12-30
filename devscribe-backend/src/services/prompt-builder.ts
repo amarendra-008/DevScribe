@@ -1,194 +1,211 @@
-import type { ChangelogInput, ReadmeInput } from '../types';
+import type { ChangelogInput, ReadmeInput, ReadmeOptions } from '../types';
+import { getEnhancedDependencies } from './code-analyzer';
 
-// System prompt for changelog generation
-export const CHANGELOG_SYSTEM_PROMPT = `You are DevScribe, an expert technical writer specializing in software release documentation. You analyze commits and pull requests to generate clear, user-focused changelogs following the Keep a Changelog specification.
+const STYLE_DESCRIPTIONS = {
+  minimal: 'Keep it concise. Only essential information.',
+  standard: 'Balance between brevity and detail. Cover key aspects.',
+  comprehensive: 'Provide extensive documentation with detailed examples.',
+};
 
-Your changelogs are:
-- Clear and readable by non-technical users
-- Organized into standard sections
-- Focused on user-facing changes
-- Concise but informative`;
+const TONE_DESCRIPTIONS = {
+  professional: 'formal, business-appropriate language',
+  friendly: 'casual, approachable, welcoming language',
+  technical: 'precise, developer-focused content',
+};
 
-// README customization options interface
-export interface ReadmeOptions {
-  style?: 'minimal' | 'standard' | 'comprehensive';
-  tone?: 'professional' | 'friendly' | 'technical';
-  sections?: {
-    badges?: boolean;
-    features?: boolean;
-    installation?: boolean;
-    usage?: boolean;
-    api?: boolean;
-    contributing?: boolean;
-    license?: boolean;
-    acknowledgments?: boolean;
-  };
-  customPrompt?: string;
-}
+export const CHANGELOG_SYSTEM_PROMPT = `You are DevScribe, an expert technical writer. Generate clear, user-focused changelogs following Keep a Changelog format.`;
 
-// Build system prompt based on options
 export function buildReadmeSystemPrompt(options?: ReadmeOptions): string {
-  const tone = options?.tone || 'professional';
   const style = options?.style || 'standard';
+  const tone = options?.tone || 'professional';
 
-  const toneDescriptions = {
-    professional: 'formal, business-appropriate language with clear technical accuracy',
-    friendly: 'casual, approachable, and welcoming language that encourages contributors',
-    technical: 'precise, developer-focused content with detailed technical specifications',
-  };
+  return `You are DevScribe, an expert technical documentation writer that creates comprehensive, accurate README files by analyzing actual source code.
 
-  const styleDescriptions = {
-    minimal: 'Keep it concise and to the point. Only essential information.',
-    standard: 'Balance between brevity and detail. Cover key aspects thoroughly.',
-    comprehensive: 'Provide extensive documentation with detailed examples and explanations.',
-  };
+STYLE: ${STYLE_DESCRIPTIONS[style]}
+TONE: Use ${TONE_DESCRIPTIONS[tone]}.
 
-  return `You are DevScribe, an expert technical writer who creates ${style} README documentation.
+YOUR APPROACH:
+1. Analyze the provided source code to understand what the project actually does
+2. Identify key features from the code, not assumptions
+3. Generate accurate installation and usage instructions based on the actual codebase
+4. Provide code examples that reflect the real API and patterns used
+5. Be specific about the technology stack and architecture
 
-WRITING STYLE: ${styleDescriptions[style]}
-TONE: Use ${toneDescriptions[tone]}.
-
-Your READMEs are:
-- Well-structured with clear hierarchy
-- Accurate to the project's tech stack
-- Include practical, working examples
-- Easy to follow for developers of all levels`;
+QUALITY STANDARDS:
+- Every claim must be backed by the source code provided
+- Code examples should be realistic and work with the actual codebase
+- Installation steps should match the project's actual setup requirements
+- API documentation should reflect actual exports and routes found in the code`;
 }
 
-// Builds the user prompt for changelog generation
 export function buildChangelogPrompt(input: ChangelogInput): string {
-  const commitList = input.commits
+  const commits = input.commits
     .slice(0, 100)
-    .map((c) => {
-      const firstLine = c.message.split('\n')[0];
-      return `- ${firstLine} (${c.sha.slice(0, 7)})`;
-    })
+    .map(c => `- ${c.message.split('\n')[0]} (${c.sha.slice(0, 7)})`)
     .join('\n');
 
-  const prList = input.pull_requests
-    .map((pr) => {
-      const labels = pr.labels.length > 0 ? ` [${pr.labels.join(', ')}]` : '';
-      return `- #${pr.number}: ${pr.title}${labels} by @${pr.author}`;
-    })
+  const prs = input.pull_requests
+    .map(pr => `- #${pr.number}: ${pr.title}${pr.labels.length ? ` [${pr.labels.join(', ')}]` : ''} by @${pr.author}`)
     .join('\n');
 
   return `Generate a changelog for ${input.repo_name} from ${input.from_ref} to ${input.to_ref}.
 
-COMMITS (${input.commits.length} total):
-${commitList || 'No commits found'}
+COMMITS (${input.commits.length}):
+${commits || 'None'}
 
-PULL REQUESTS (${input.pull_requests.length} total):
-${prList || 'No pull requests found'}
+PULL REQUESTS (${input.pull_requests.length}):
+${prs || 'None'}
 
-Generate a changelog with these sections (include only sections with relevant changes):
-- Added: New features
-- Changed: Changes in existing functionality
-- Fixed: Bug fixes
-- Removed: Removed features
-- Security: Security fixes
-
-Rules:
-- Group related changes together
-- Write clear, user-facing descriptions
-- Reference PR numbers when available
-- Skip merge commits and trivial changes
-- Use present tense
-- Do not include section headers for empty sections
-
-Output only the changelog content in Markdown format, starting with the version header.`;
+Include sections: Added, Changed, Fixed, Removed, Security (only if relevant).
+Rules: Group related changes, write clear descriptions, reference PR numbers, skip trivial changes, use present tense.
+Output only Markdown, starting with version header.`;
 }
 
-// Builds the user prompt for README generation
 export function buildReadmePrompt(input: ReadmeInput, options?: ReadmeOptions): string {
-  const structure = input.file_structure.slice(0, 80).join('\n');
-
+  const structure = input.file_structure.slice(0, 100).join('\n');
   const languages = Object.entries(input.languages)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([lang, bytes]) => `- ${lang}: ${Math.round(bytes / 1024)}KB`)
     .join('\n');
 
-  let prompt = `Generate a README for the repository "${input.repo_name}".
+  // Build comprehensive prompt with code analysis
+  let prompt = `Generate a comprehensive README for "${input.repo_name}".`;
 
-DESCRIPTION:
-${input.description || 'No description provided'}
+  // Add code analysis if available
+  if (input.code_analysis) {
+    const analysis = input.code_analysis;
 
-FILE STRUCTURE:
+    prompt += `
+
+## PROJECT ANALYSIS (from source code inspection)
+
+ARCHITECTURE: ${analysis.architecture}
+
+TECH STACK: ${analysis.techStack.join(', ') || 'JavaScript/TypeScript'}
+
+ENTRY POINTS:
+${analysis.entryPoints.map(e => `- ${e}`).join('\n') || '- Not detected'}
+
+DETECTED PATTERNS:
+${analysis.patterns.map(p => `- ${p}`).join('\n') || '- Standard patterns'}`;
+
+    // Add routes if any
+    if (analysis.routes.length > 0) {
+      prompt += `
+
+API ROUTES (detected from code):
+${analysis.routes.map(r => `- ${r.method} ${r.path} (${r.file})`).join('\n')}`;
+    }
+
+    // Add components if any
+    if (analysis.components.length > 0) {
+      prompt += `
+
+COMPONENTS (detected from code):
+${analysis.components.map(c => `- ${c.name} [${c.type}] (${c.file})`).join('\n')}`;
+    }
+
+    // Add key exports
+    if (analysis.exports.length > 0) {
+      prompt += `
+
+KEY EXPORTS:
+${analysis.exports.slice(0, 15).map(e => `- ${e.type} ${e.name} from ${e.file}`).join('\n')}`;
+    }
+  }
+
+  // Add source code samples
+  if (input.source_files && input.source_files.length > 0) {
+    prompt += `
+
+## SOURCE CODE SAMPLES (for accurate documentation)
+`;
+    for (const file of input.source_files.slice(0, 10)) {
+      prompt += `
+### ${file.path} (${file.lineCount} lines)
+\`\`\`${file.language}
+${file.content.slice(0, 2000)}${file.content.length > 2000 ? '\n// ... (truncated)' : ''}
+\`\`\`
+`;
+    }
+  }
+
+  prompt += `
+
+## ADDITIONAL CONTEXT
+
+DESCRIPTION: ${input.description || 'No description provided'}
+
+FILE STRUCTURE (${input.file_structure.length} files):
 ${structure}
 
 LANGUAGES:
 ${languages || 'Unknown'}`;
 
+  // Enhanced dependency info
   if (input.package_json) {
     const pkg = input.package_json as Record<string, unknown>;
-    const deps = Object.keys((pkg.dependencies as Record<string, string>) || {}).slice(0, 15);
-    const devDeps = Object.keys((pkg.devDependencies as Record<string, string>) || {}).slice(0, 10);
+    const enhancedDeps = getEnhancedDependencies(input.package_json);
+    const scripts = Object.entries((pkg.scripts as Record<string, string>) || {});
 
     prompt += `
 
-PACKAGE.JSON:
+PACKAGE INFO:
 - Name: ${pkg.name || 'Unknown'}
-- Version: ${pkg.version || 'Unknown'}
-- Dependencies: ${deps.join(', ') || 'None'}
-- Dev Dependencies: ${devDeps.join(', ') || 'None'}
-- Scripts: ${Object.keys((pkg.scripts as Record<string, string>) || {}).join(', ') || 'None'}`;
+- Version: ${pkg.version || '0.0.0'}
+- Description: ${pkg.description || 'No description'}
+
+DEPENDENCIES (with purposes):
+${enhancedDeps.map(d => `- ${d.name}@${d.version}: ${d.description}`).join('\n') || 'None'}
+
+AVAILABLE SCRIPTS:
+${scripts.map(([name, cmd]) => `- npm run ${name}: ${cmd}`).join('\n') || 'None'}`;
   }
 
   if (input.existing_readme) {
     prompt += `
 
-EXISTING README (for reference):
-${input.existing_readme.slice(0, 1500)}`;
+EXISTING README (for context, improve upon this):
+${input.existing_readme.slice(0, 2000)}`;
   }
 
-  // Build sections list based on options
+  // Section configuration
   const sections = options?.sections || {
-    badges: true,
-    features: true,
-    installation: true,
-    usage: true,
-    api: false,
-    contributing: true,
-    license: true,
-    acknowledgments: false,
+    badges: true, features: true, installation: true, usage: true,
+    api: false, contributing: true, license: true, acknowledgments: false,
   };
 
-  const sectionsList: string[] = [];
-  sectionsList.push('Project title with brief tagline');
-  sectionsList.push('Description');
-  if (sections.badges) sectionsList.push('Badges (build status, version, license)');
-  if (sections.features) sectionsList.push('Features (inferred from structure and dependencies)');
-  if (sections.installation) sectionsList.push('Installation with step-by-step instructions');
-  if (sections.usage) sectionsList.push('Usage with code examples');
-  if (sections.api) sectionsList.push('API Documentation');
+  const sectionsList = ['Title with compelling tagline', 'Clear description of what the project does'];
+  if (sections.badges) sectionsList.push('Relevant badges (build status, version, license)');
+  if (sections.features) sectionsList.push('Key features (derived from actual code functionality)');
+  if (sections.installation) sectionsList.push('Installation steps (based on actual package.json scripts)');
+  if (sections.usage) sectionsList.push('Usage examples (with real code from the codebase)');
+  if (sections.api) sectionsList.push('API Documentation (based on detected routes/exports)');
   if (sections.contributing) sectionsList.push('Contributing guidelines');
   if (sections.license) sectionsList.push('License');
   if (sections.acknowledgments) sectionsList.push('Acknowledgments');
 
-  const numberedSections = sectionsList.map((s, i) => `${i + 1}. ${s}`).join('\n');
-
-  // Add custom instructions if provided
-  if (options?.customPrompt && options.customPrompt.trim()) {
+  if (options?.customPrompt?.trim()) {
     prompt += `
 
-USER'S ADDITIONAL INSTRUCTIONS:
-${options.customPrompt.trim()}
-
-Please incorporate these instructions into the README generation.`;
+USER INSTRUCTIONS (follow these specifically):
+${options.customPrompt.trim()}`;
   }
 
   prompt += `
 
-Generate a README with these sections:
-${numberedSections}
+## OUTPUT REQUIREMENTS
 
-Rules:
-- Use proper Markdown formatting
-- Include appropriate code blocks with syntax highlighting
-- Be specific to this project's detected tech stack
-- Only include sections listed above
-- Make sure all code examples are complete and runnable
-- Follow any additional instructions provided by the user above
+Include these sections: ${sectionsList.join(', ')}
+
+IMPORTANT:
+1. Base all features and functionality on the actual source code provided above
+2. Use real code patterns from the source files for examples
+3. Reference actual exports, routes, and components by name
+4. Installation steps must match the actual package.json scripts
+5. Be specific about the tech stack - mention actual libraries used
+6. Don't make up features that aren't in the code
 
 Output only the README content in Markdown format.`;
 

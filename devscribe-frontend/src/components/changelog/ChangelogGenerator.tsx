@@ -2,83 +2,55 @@ import { useState, useEffect } from 'react';
 import { Loader2, Copy, Check, FileText, Upload, ChevronDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { supabase } from '../../lib/supabase';
-import {
-  fetchConnectedRepos,
-  fetchRepoRefs,
-  generateChangelog,
-  syncToGitHub,
-} from '../../lib/api';
+import { useAuth } from '../../lib/useAuth';
+import { useClipboard } from '../../lib/useClipboard';
+import { fetchConnectedRepos, fetchRepoRefs, generateChangelog, syncToGitHub } from '../../lib/api';
 import type { ConnectedRepository, GitRef, GeneratedDocument } from '../../types';
 
 export default function ChangelogGenerator() {
+  const { githubToken, userId, loading: authLoading } = useAuth();
+  const { copied, copy } = useClipboard();
+
   const [repos, setRepos] = useState<ConnectedRepository[]>([]);
-  const [selectedRepo, setSelectedRepo] = useState<string>('');
+  const [selectedRepo, setSelectedRepo] = useState('');
   const [refs, setRefs] = useState<{ releases: GitRef[]; tags: GitRef[]; branches: GitRef[]; commits: GitRef[] }>({
-    releases: [],
-    tags: [],
-    branches: [],
-    commits: [],
+    releases: [], tags: [], branches: [], commits: [],
   });
   const [fromRef, setFromRef] = useState('');
   const [toRef, setToRef] = useState('');
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [document, setDocument] = useState<GeneratedDocument | null>(null);
-  const [copied, setCopied] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [synced, setSynced] = useState(false);
   const [error, setError] = useState('');
-  const [githubToken, setGitHubToken] = useState('');
-  const [userId, setUserId] = useState('');
 
   useEffect(() => {
-    initAuth();
-  }, []);
+    if (githubToken && userId) {
+      setLoading(true);
+      fetchConnectedRepos(githubToken, userId)
+        .then(setRepos)
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }
+  }, [githubToken, userId]);
 
   useEffect(() => {
-    if (selectedRepo && githubToken) {
-      loadRefs();
+    if (selectedRepo && githubToken && userId) {
+      fetchRepoRefs(githubToken, userId, selectedRepo)
+        .then(data => {
+          setRefs(data);
+          setFromRef('');
+          setToRef('');
+        })
+        .catch(() => {});
     }
-  }, [selectedRepo]);
-
-  const initAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      setGitHubToken(session.provider_token || '');
-      setUserId(session.user.id);
-      loadRepos(session.provider_token || '', session.user.id);
-    }
-  };
-
-  const loadRepos = async (token: string, uid: string) => {
-    setLoading(true);
-    try {
-      const data = await fetchConnectedRepos(token, uid);
-      setRepos(data);
-    } catch (err) {
-      console.error('Failed to load repos:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadRefs = async () => {
-    try {
-      const data = await fetchRepoRefs(githubToken, userId, selectedRepo);
-      setRefs(data);
-      setFromRef('');
-      setToRef('');
-    } catch (err) {
-      console.error('Failed to load refs:', err);
-    }
-  };
+  }, [selectedRepo, githubToken, userId]);
 
   const allRefs = [...refs.releases, ...refs.tags, ...refs.branches, ...refs.commits];
 
   const handleGenerate = async () => {
     if (!selectedRepo || !fromRef || !toRef) return;
-
     setGenerating(true);
     setError('');
     setDocument(null);
@@ -86,18 +58,11 @@ export default function ChangelogGenerator() {
     try {
       const doc = await generateChangelog(githubToken, userId, selectedRepo, fromRef, toRef);
       setDocument(doc);
-    } catch (err) {
+    } catch {
       setError('Failed to generate changelog. Make sure there are commits between the selected refs.');
     } finally {
       setGenerating(false);
     }
-  };
-
-  const handleCopy = async () => {
-    if (!document) return;
-    await navigator.clipboard.writeText(document.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleSync = async () => {
@@ -110,14 +75,22 @@ export default function ChangelogGenerator() {
       await syncToGitHub(githubToken, userId, repo.repo_full_name, 'CHANGELOG.md', document.content);
       setSynced(true);
       setTimeout(() => setSynced(false), 3000);
-    } catch (err) {
-      setError('Failed to sync to GitHub. Make sure you have write access to the repository.');
+    } catch {
+      setError('Failed to sync to GitHub. Make sure you have write access.');
     } finally {
       setSyncing(false);
     }
   };
 
-  if (loading) {
+  const formatRefOption = (ref: GitRef) => {
+    if (ref.type === 'commit') {
+      const shortMessage = ref.message?.slice(0, 30) || '';
+      return `${ref.name} - ${shortMessage}${(ref.message?.length || 0) > 30 ? '...' : ''}`;
+    }
+    return `${ref.name} (${ref.type})`;
+  };
+
+  if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
@@ -129,9 +102,7 @@ export default function ChangelogGenerator() {
     return (
       <div className="max-w-2xl">
         <h1 className="text-2xl font-semibold text-white mb-2">Generate Changelog</h1>
-        <p className="text-gray-400 mb-8">
-          Connect a repository first to generate changelogs
-        </p>
+        <p className="text-gray-400 mb-8">Connect a repository first to generate changelogs</p>
         <div className="text-center py-16 bg-[#18181b] rounded-md border border-[#2a2a2a]">
           <FileText className="w-12 h-12 mx-auto mb-4 text-gray-600" />
           <p className="text-gray-400">No repositories connected</p>
@@ -143,54 +114,40 @@ export default function ChangelogGenerator() {
   return (
     <div className="w-full max-w-5xl mx-auto">
       <h1 className="text-2xl font-semibold text-white mb-2">Generate Changelog</h1>
-      <p className="text-gray-400 mb-8">
-        Select a repository and version range to generate a changelog
-      </p>
+      <p className="text-gray-400 mb-8">Select a repository and version range to generate a changelog</p>
 
-      {/* Configuration */}
       <div className="bg-[#18181b] rounded-lg border border-[#2a2a2a] p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {/* Repository select */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Repository
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Repository</label>
             <div className="relative">
               <select
                 value={selectedRepo}
                 onChange={(e) => setSelectedRepo(e.target.value)}
-                className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#333] rounded-lg text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-transparent transition-all hover:border-[#444]"
+                className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#333] rounded-lg text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/20"
               >
                 <option value="">Select repository</option>
                 {repos.map((repo) => (
-                  <option key={repo.id} value={repo.id}>
-                    {repo.repo_name}
-                  </option>
+                  <option key={repo.id} value={repo.id}>{repo.repo_name}</option>
                 ))}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             </div>
           </div>
 
-          {/* From ref */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              From (older)
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">From (older)</label>
             <div className="relative">
               <select
                 value={fromRef}
                 onChange={(e) => setFromRef(e.target.value)}
                 disabled={!selectedRepo}
-                className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#333] rounded-lg text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-transparent transition-all hover:border-[#444] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[#333]"
+                className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#333] rounded-lg text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">Select ref</option>
                 {allRefs.map((ref) => (
                   <option key={`${ref.type}-${ref.sha || ref.name}`} value={ref.type === 'commit' ? ref.sha : ref.name}>
-                    {ref.type === 'commit'
-                      ? `${ref.name} - ${ref.message?.slice(0, 30)}${(ref.message?.length || 0) > 30 ? '...' : ''}`
-                      : `${ref.name} (${ref.type})`
-                    }
+                    {formatRefOption(ref)}
                   </option>
                 ))}
               </select>
@@ -198,25 +155,19 @@ export default function ChangelogGenerator() {
             </div>
           </div>
 
-          {/* To ref */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              To (newer)
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">To (newer)</label>
             <div className="relative">
               <select
                 value={toRef}
                 onChange={(e) => setToRef(e.target.value)}
                 disabled={!selectedRepo}
-                className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#333] rounded-lg text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-transparent transition-all hover:border-[#444] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[#333]"
+                className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#333] rounded-lg text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">Select ref</option>
                 {allRefs.map((ref) => (
                   <option key={`${ref.type}-${ref.sha || ref.name}`} value={ref.type === 'commit' ? ref.sha : ref.name}>
-                    {ref.type === 'commit'
-                      ? `${ref.name} - ${ref.message?.slice(0, 30)}${(ref.message?.length || 0) > 30 ? '...' : ''}`
-                      : `${ref.name} (${ref.type})`
-                    }
+                    {formatRefOption(ref)}
                   </option>
                 ))}
               </select>
@@ -228,35 +179,27 @@ export default function ChangelogGenerator() {
         <button
           onClick={handleGenerate}
           disabled={!selectedRepo || !fromRef || !toRef || generating}
-          className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {generating ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            'Generate Changelog'
-          )}
+          {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          {generating ? 'Generating...' : 'Generate Changelog'}
         </button>
       </div>
 
-      {/* Error */}
       {error && (
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
           {error}
         </div>
       )}
 
-      {/* Output */}
       {document && (
         <div className="bg-[#18181b] rounded-lg border border-[#2a2a2a]">
           <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a]">
             <h3 className="font-medium text-white">{document.title}</h3>
             <div className="flex items-center gap-3">
               <button
-                onClick={handleCopy}
-                className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+                onClick={() => copy(document.content)}
+                className="flex items-center gap-2 text-sm text-gray-400 hover:text-white"
               >
                 {copied ? <Check size={16} /> : <Copy size={16} />}
                 {copied ? 'Copied' : 'Copy'}
@@ -264,31 +207,15 @@ export default function ChangelogGenerator() {
               <button
                 onClick={handleSync}
                 disabled={syncing}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-medium text-sm disabled:opacity-50"
               >
-                {syncing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Syncing...
-                  </>
-                ) : synced ? (
-                  <>
-                    <Check size={16} />
-                    Synced!
-                  </>
-                ) : (
-                  <>
-                    <Upload size={16} />
-                    Push to GitHub
-                  </>
-                )}
+                {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : synced ? <Check size={16} /> : <Upload size={16} />}
+                {syncing ? 'Syncing...' : synced ? 'Synced!' : 'Push to GitHub'}
               </button>
             </div>
           </div>
           <div className="p-6 prose prose-invert prose-sm max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {document.content}
-            </ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{document.content}</ReactMarkdown>
           </div>
         </div>
       )}

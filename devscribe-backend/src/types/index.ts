@@ -1,5 +1,3 @@
-// Repository types
-
 export interface GitHubRepo {
   id: number;
   name: string;
@@ -12,20 +10,6 @@ export interface GitHubRepo {
   stargazers_count: number;
   updated_at: string;
 }
-
-export interface ConnectedRepository {
-  id: string;
-  user_id: string;
-  github_repo_id: number;
-  repo_name: string;
-  repo_full_name: string;
-  repo_url: string;
-  default_branch: string;
-  is_private: boolean;
-  connected_at: string;
-}
-
-// Git reference types
 
 export interface GitRef {
   name: string;
@@ -43,8 +27,6 @@ export interface GitRelease {
   body: string;
 }
 
-// Commit and PR types
-
 export interface CommitInfo {
   sha: string;
   message: string;
@@ -61,49 +43,21 @@ export interface PullRequestInfo {
   merged_at: string;
 }
 
-// Document types
-
-export type DocumentType = 'changelog' | 'readme';
-
-export interface GeneratedDocument {
-  id: string;
-  user_id: string;
-  repository_id: string;
-  doc_type: DocumentType;
-  title: string;
-  content: string;
-  metadata: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
+export interface ReadmeOptions {
+  style?: 'minimal' | 'standard' | 'comprehensive';
+  tone?: 'professional' | 'friendly' | 'technical';
+  sections?: {
+    badges?: boolean;
+    features?: boolean;
+    installation?: boolean;
+    usage?: boolean;
+    api?: boolean;
+    contributing?: boolean;
+    license?: boolean;
+    acknowledgments?: boolean;
+  };
+  customPrompt?: string;
 }
-
-// Request/Response types
-
-export interface ConnectRepoRequest {
-  github_repo_id: number;
-  repo_name: string;
-  repo_full_name: string;
-  repo_url: string;
-  default_branch: string;
-  is_private: boolean;
-}
-
-export interface GenerateChangelogRequest {
-  repository_id: string;
-  from_ref: string;
-  to_ref: string;
-}
-
-export interface GenerateReadmeRequest {
-  repository_id: string;
-}
-
-export interface UpdateDocumentRequest {
-  title?: string;
-  content?: string;
-}
-
-// Changelog generation input for LLM
 
 export interface ChangelogInput {
   repo_name: string;
@@ -113,8 +67,6 @@ export interface ChangelogInput {
   pull_requests: PullRequestInfo[];
 }
 
-// README generation input for LLM
-
 export interface ReadmeInput {
   repo_name: string;
   description: string | null;
@@ -122,13 +74,45 @@ export interface ReadmeInput {
   languages: Record<string, number>;
   package_json?: Record<string, unknown>;
   existing_readme?: string;
+  source_files?: CodeFile[];
+  code_analysis?: CodeAnalysis;
 }
 
-// User profile
+// Code analysis types for comprehensive README generation
+export interface CodeFile {
+  path: string;
+  language: string;
+  content: string;
+  lineCount: number;
+}
 
-export interface UserProfile {
-  id: string;
-  github_username: string;
-  github_avatar_url: string | null;
-  created_at: string;
+export interface ExportInfo {
+  name: string;
+  type: 'function' | 'class' | 'const' | 'interface' | 'type' | 'component' | 'default';
+  file: string;
+  description?: string;
+}
+
+export interface RouteInfo {
+  method: string;
+  path: string;
+  handler: string;
+  file: string;
+}
+
+export interface ComponentInfo {
+  name: string;
+  file: string;
+  type: 'functional' | 'class' | 'page' | 'layout';
+  props?: string[];
+}
+
+export interface CodeAnalysis {
+  architecture: string;
+  entryPoints: string[];
+  exports: ExportInfo[];
+  routes: RouteInfo[];
+  components: ComponentInfo[];
+  patterns: string[];
+  techStack: string[];
 }
