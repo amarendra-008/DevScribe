@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { supabase } from '../lib/supabase';
 import { createGitHubClient, getCommitsBetweenRefs, getPullRequestsBetweenRefs } from '../lib/github';
-import { callClaude } from '../services/claude';
+import { callOpenRouter } from '../services/openrouter';
 import { CHANGELOG_SYSTEM_PROMPT, buildChangelogPrompt } from '../services/prompt-builder';
 import { requireAuth, asyncHandler } from '../lib/middleware';
 
@@ -41,7 +41,7 @@ router.post('/generate', asyncHandler(async (req, res) => {
     return;
   }
 
-  const content = await callClaude(
+  const content = await callOpenRouter(
     CHANGELOG_SYSTEM_PROMPT,
     buildChangelogPrompt({ repo_name: repo.repo_name, from_ref, to_ref, commits, pull_requests: pullRequests })
   );

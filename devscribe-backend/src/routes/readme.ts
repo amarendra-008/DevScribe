@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { supabase } from '../lib/supabase';
 import { createGitHubClient, getRepoTree, getFileContent, getRepoLanguages, getKeySourceFiles } from '../lib/github';
-import { callClaude } from '../services/claude';
+import { callOpenRouter } from '../services/openrouter';
 import { buildReadmeSystemPrompt, buildReadmePrompt } from '../services/prompt-builder';
 import { analyzeCodebase } from '../services/code-analyzer';
 import { requireAuth, asyncHandler } from '../lib/middleware';
@@ -62,7 +62,7 @@ router.post('/generate', asyncHandler(async (req, res) => {
   });
 
   // Phase 4: Generate README with comprehensive context
-  const content = await callClaude(
+  const content = await callOpenRouter(
     buildReadmeSystemPrompt(options),
     buildReadmePrompt({
       repo_name: repo.repo_name,
