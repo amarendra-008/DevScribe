@@ -451,6 +451,6 @@ MIT License - feel free to use this as inspiration for your own projects!
 ### Built by [Amarendra Mishra](https://github.com/amarendra-008)
 
 [![GitHub](https://img.shields.io/badge/GitHub-amarendra--008-181717?style=flat-square&logo=github)](https://github.com/amarendra-008)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=flat-square&logo=linkedin)](https://linkedin.com/in/your-profile)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=flat-square&logo=linkedin)](https://linkedin.com/in/amarendra006)
 
 </div>
